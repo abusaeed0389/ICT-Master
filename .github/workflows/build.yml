@@ -1,0 +1,67 @@
+name: Build ICT Master APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set Up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Find and Extract Project ZIP
+        run: |
+          mkdir -p project
+
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found in repository root."
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d project
+
+      - name: Find Gradle Wrapper
+        run: |
+          GRADLE_FILE=$(find project -type f -name gradlew | head -n 1)
+
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "ERROR: gradlew not found inside ZIP."
+            echo "Please check the ZIP project structure."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLE_FILE")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Debug APK
+        run: |
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ICT-Master-APK
+          path: project/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

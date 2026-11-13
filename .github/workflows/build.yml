@@ -1,3 +1,4 @@
+
 name: Build ICT Master APK
 
 on:
@@ -24,7 +25,10 @@ jobs:
           java-version: '17'
 
       - name: Set Up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 14742923
+          packages: platform-tools
 
       - name: Find and Extract Project ZIP
         run: |
@@ -53,11 +57,13 @@ jobs:
           PROJECT_DIR=$(dirname "$GRADLE_FILE")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
+          echo "Android project found at: $PROJECT_DIR"
+
       - name: Build Debug APK
         run: |
           cd "$PROJECT_DIR"
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew --no-daemon assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
